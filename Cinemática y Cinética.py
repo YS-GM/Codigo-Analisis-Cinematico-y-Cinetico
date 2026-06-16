@@ -12,9 +12,9 @@ L4 = 0.13239    # Distancia vertical al pivote A (m)
 Rp = 0.030      # Radio del pin excéntrico (m)
 
 # Masas (convertidas a kg para cálculos de fuerza y torque)
-m_barra1 = 14.76 / 1000  # 0.01476 kg
-m_barra2 = 7.68 / 1000   # 0.00768 kg
-# Nota: Masa del cortador omitida según tu solicitud
+m_barra1 = 14.76 / 1000   # 0.01476 kg
+m_barra2 = 7.68 / 1000    # 0.00768 kg
+m_sellador = 4.58 / 1000  # 0.00458 kg 
 
 g = 9.81  # Gravedad (m/s²)
 
@@ -64,7 +64,7 @@ for t1 in theta1_rad:
     Ab_n = (Wab**2) * L1
     Ab_t = alpha_AB * L1
 
-    # --- CINEMÁTICA: BARRA 2 Y CORTADOR D ---
+    # --- CINEMÁTICA: BARRA 2 Y SELLADOR D ---
     xB, yB = xA + L1 * np.cos(t2), yA + L1 * np.sin(t2)
     Xd = 0.0 
     
@@ -93,12 +93,15 @@ for t1 in theta1_rad:
         a_G2x = Abx / 2
         a_G2y = (Aby + A_Dy) / 2
         
-        P_grav = - (m_barra1 * g * V_G1y) - (m_barra2 * g * V_G2y)
+        # Potencias Virtuales
+        P_grav = - (m_barra1 * g * V_G1y) - (m_barra2 * g * V_G2y) - (m_sellador * g * V_Dy)
         P_iner_1 = - I_A * alpha_AB * Wab
         P_iner_2 = - (m_barra2 * a_G2x * V_G2x + m_barra2 * a_G2y * V_G2y) - I_G2 * Alpha_BD * W_BD
+        P_iner_D = - m_sellador * A_Dy * V_Dy  
         P_ext = - F_sellado * V_Dy  
         
-        T_motor = - (P_grav + P_iner_1 + P_iner_2 + P_ext) / Wr
+        # Torque del Motor final
+        T_motor = - (P_grav + P_iner_1 + P_iner_2 + P_iner_D + P_ext) / Wr
         
     else:
         t3, W_BD, V_Dy, Alpha_BD, A_Dy, F_sellado, T_motor = [np.nan]*7
@@ -111,12 +114,12 @@ for t1 in theta1_rad:
         'W_AB_rad_s': Wab,
         'W_BD_rad_s': W_BD,
         'V_deslizamiento_c_AB_m_s': V_c_AB,
-        'Velocidad_Cortador_D_m_s': V_Dy,
+        'Velocidad_Sellador_D_m_s': V_Dy,
         'Alpha_AB_rad_s2': alpha_AB,
         'Alpha_BD_rad_s2': Alpha_BD,
         'A_deslizamiento_c_AB_m_s2': a_c_AB,
         'A_Coriolis_m_s2': A_coriolis,
-        'Aceleracion_Cortador_D_m_s2': A_Dy,
+        'Aceleracion_Sellador_D_m_s2': A_Dy,
         'Fuerza_Sellado_N': F_sellado,
         'Torque_Motor_Nm': T_motor
     })
@@ -127,7 +130,7 @@ for t1 in theta1_rad:
 df = pd.DataFrame(datos)
 nombre_archivo = 'Analisis_Mecanico_Total.xlsx'
 df.to_excel(nombre_archivo, index=False)
-print(f"¡Éxito! Todas las variables guardadas en: {nombre_archivo}")
+print(f"✅ ¡Éxito! Todas las variables guardadas en: {nombre_archivo}")
 
 # ==========================================
 # 4. GRÁFICAS (NUEVO PANEL 2x2)
@@ -153,7 +156,7 @@ axs[0, 1].set_xlim(0, 360)
 axs[0, 1].legend()
 
 # [1,0] ACELERACIONES LINEALES
-axs[1, 0].plot(df['Theta1_deg'], df['Aceleracion_Cortador_D_m_s2'], label='Aceleración D', color='magenta')
+axs[1, 0].plot(df['Theta1_deg'], df['Aceleracion_Sellador_D_m_s2'], label='Aceleración Sellador', color='magenta')
 axs[1, 0].plot(df['Theta1_deg'], df['A_Coriolis_m_s2'], label='A Coriolis', color='orange')
 axs[1, 0].plot(df['Theta1_deg'], df['A_deslizamiento_c_AB_m_s2'], label='A deslizamiento', color='purple')
 axs[1, 0].set_title('Aceleraciones Lineales')
@@ -162,11 +165,12 @@ axs[1, 0].set_ylabel('m/s²')
 axs[1, 0].set_xlim(0, 360)
 axs[1, 0].legend()
 
-# [1,1] TORQUE DEL MOTOR
+# [1,1] TORQUE DEL MOTOR (🛠️ ÚNICA SECCIÓN MODIFICADA CON ESCALA SIMÉTRICA LOGARÍTMICA)
 axs[1, 1].plot(df['Theta1_deg'], df['Torque_Motor_Nm'], label='Torque Motor', color='purple', linewidth=2)
+axs[1, 1].set_yscale('symlog', linthresh=0.005)  # <- Muestra el comportamiento fino (0.002 Nm) y el pico de sellado juntos
 axs[1, 1].set_title('Torque Requerido (Cinética)')
 axs[1, 1].set_xlabel('Ángulo de entrada Theta 1 (Grados)')
-axs[1, 1].set_ylabel('N·m')
+axs[1, 1].set_ylabel('N·m (Escala Symlog)')
 axs[1, 1].set_xlim(0, 360)
 axs[1, 1].legend()
 
