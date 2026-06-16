@@ -127,7 +127,7 @@ for t1 in theta1_rad:
 df = pd.DataFrame(datos)
 nombre_archivo = 'Analisis_Mecanico_Total.xlsx'
 df.to_excel(nombre_archivo, index=False)
-print(f"✅ ¡Éxito! Todas las variables guardadas en: {nombre_archivo}")
+print(f"¡Éxito! Todas las variables guardadas en: {nombre_archivo}")
 
 # ==========================================
 # 4. GRÁFICAS (NUEVO PANEL 2x2)
